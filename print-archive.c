@@ -62,6 +62,7 @@ int main(int argc, char** argv) {
   return 0;
 }
 
+
 /**
  * This function should print the name of each file in the archive followed by its
  * contents.
@@ -70,5 +71,54 @@ int main(int argc, char** argv) {
  * \param size This is the number of bytes in the file.
  */
 void print_contents(uint8_t* data, size_t size) {
-  // TODO; Implement me!
+    
+    //make sure to skip over the first 8 bytes
+    uint8_t* dataPointer = data + 8;
+    // find out the end of the file
+    uint8_t* end = data + size;
+
+    // every file is 60 bytes of header + file size, go until end
+    while (dataPointer + 60 <= end) {
+        
+        //make sure theres room for a null characyer
+        char sizeText[11];
+        for(int i = 0; i < 11; i++) {
+            sizeText[i] = 0;
+        }
+
+        memcpy(sizeText, dataPointer + 48, 10);
+
+        size_t fileSize = 0;
+        sscanf(sizeText, "%zu", &fileSize);
+
+        // go through the file up until weve hit 16 bytes or until we find '/', ' ', '\0'
+        int nameLen = 0;
+        while (nameLen < 16 && dataPointer[nameLen] != '/' && dataPointer[nameLen] != ' ' && dataPointer[nameLen] != '\0') {
+            nameLen++;
+        }
+
+        // Print the filename we found
+        printf("%.*s\n", nameLen, (char*)dataPointer);
+
+       uint8_t* content = dataPointer + 60;
+       size_t len = fileSize;
+       if (content + len > end) {
+        len = end - content;
+        }
+
+
+        // checks to make sure the file isnt empty + prints
+        if (len > 0) {
+            fwrite(content, 1, len, stdout);
+        }
+        printf("\n");
+
+        // Move to our next file entry
+        dataPointer += 60 + fileSize;
+
+        //make sure to add extra padding for odd file sizes
+        if (fileSize % 2 != 0) {
+            dataPointer += 1;
+        }
+    }
 }
